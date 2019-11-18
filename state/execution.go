@@ -309,6 +309,8 @@ func execBlockOnProxyApp(
 }
 
 func getBeginBlockValidatorInfo(block *types.Block, stateDB dbm.DB) (abci.LastCommitInfo, []abci.Evidence) {
+	voteInfos := make([]abci.VoteInfo, block.LastCommit.Size())
+	byzVals := make([]abci.Evidence, len(block.Evidence.Evidence))
 	var lastValSet *types.ValidatorSet
 	var err error
 	if block.Height > 1 {
@@ -322,26 +324,27 @@ func getBeginBlockValidatorInfo(block *types.Block, stateDB dbm.DB) (abci.LastCo
 
 		precommitLen := block.LastCommit.Size()
 		valSetLen := len(lastValSet.Validators)
-		if precommitLen < valSetLen*2/3 || precommitLen > valSetLen { // sanity check
-			panic(fmt.Sprintf("precommit length %d must be within [%d, %d] at height %d\n\n%v\n\n%v",
-				precommitLen, valSetLen*2/3, valSetLen, block.Height, block.LastCommit.Precommits, lastValSet.Validators))
+		if precommitLen != valSetLen {
+			// sanity check
+			panic(fmt.Sprintf("precommit length (%d) doesn't match valset length (%d) at height %d\n\n%v\n\n%v",
+				precommitLen, valSetLen, block.Height, block.LastCommit.Precommits, lastValSet.Validators))
 		}
 	} else {
 		lastValSet = types.NewValidatorSet(nil)
 	}
 
-	voteInfos := make([]abci.VoteInfo, block.LastCommit.Size())
-	for i, precommit := range block.LastCommit.Precommits {
-		_, val := lastValSet.GetByAddress(precommit.ValidatorAddress)
-		if val != nil {
-			voteInfos[i] = abci.VoteInfo{
-				Validator:       types.TM2PB.Validator(val),
-				SignedLastBlock: precommit.BlockIDFlag != types.BlockIDFlagCommit,
-			}
+	for i, val := range lastValSet.Validators {
+		var vote *types.CommitSig
+		if i < len(block.LastCommit.Precommits) {
+			vote = block.LastCommit.Precommits[i]
 		}
+		voteInfo := abci.VoteInfo{
+			Validator:       types.TM2PB.Validator(val),
+			SignedLastBlock: vote != nil,
+		}
+		voteInfos[i] = voteInfo
 	}
 
-	byzVals := make([]abci.Evidence, len(block.Evidence.Evidence))
 	for i, ev := range block.Evidence.Evidence {
 		// We need the validator set. We already did this in validateBlock.
 		// TODO: Should we instead cache the valset in the evidence itself and add
