@@ -599,7 +599,8 @@ func (vals *ValidatorSet) VerifyCommit(chainID string, blockID BlockID,
 	if err := commit.ValidateBasic(); err != nil {
 		return err
 	}
-	if vals.Size() != len(commit.Precommits) {
+	if len(commit.Precommits) < vals.Size()*2/3 ||
+		len(commit.Precommits) > vals.Size() {
 		return NewErrInvalidCommitPrecommits(vals.Size(), len(commit.Precommits))
 	}
 	// NOTE: commit.Round is not being checked. Should we check it?
@@ -616,7 +617,7 @@ func (vals *ValidatorSet) VerifyCommit(chainID string, blockID BlockID,
 		if precommit == nil {
 			continue // OK, some precommits can be missing.
 		}
-		_, val := vals.GetByIndex(idx)
+		_, val := vals.GetByAddress(precommit.ValidatorAddress)
 		// Validate signature.
 		precommitSignBytes := commit.VoteSignBytes(chainID, idx)
 		if !val.PubKey.VerifyBytes(precommitSignBytes, precommit.Signature) {

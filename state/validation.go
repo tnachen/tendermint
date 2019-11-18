@@ -85,7 +85,8 @@ func validateBlock(evidencePool EvidencePool, stateDB dbm.DB, state State, block
 			return errors.New("block at height 1 can't have LastCommit precommits")
 		}
 	} else {
-		if len(block.LastCommit.Precommits) != state.LastValidators.Size() {
+		if len(block.LastCommit.Precommits) < state.LastValidators.Size()*2/3 ||
+			len(block.LastCommit.Precommits) > state.LastValidators.Size() {
 			return types.NewErrInvalidCommitPrecommits(state.LastValidators.Size(), len(block.LastCommit.Precommits))
 		}
 		err := state.LastValidators.VerifyCommit(

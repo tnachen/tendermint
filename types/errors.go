@@ -26,7 +26,7 @@ func NewErrInvalidCommitHeight(expected, actual int64) ErrInvalidCommitHeight {
 }
 
 func (e ErrInvalidCommitHeight) Error() string {
-	return fmt.Sprintf("Invalid commit -- wrong height: %v vs %v", e.Expected, e.Actual)
+	return fmt.Sprintf("invalid commit -- wrong height: %v vs %v", e.Expected, e.Actual)
 }
 
 func NewErrInvalidCommitPrecommits(expected, actual int) ErrInvalidCommitPrecommits {
@@ -37,5 +37,5 @@ func NewErrInvalidCommitPrecommits(expected, actual int) ErrInvalidCommitPrecomm
 }
 
 func (e ErrInvalidCommitPrecommits) Error() string {
-	return fmt.Sprintf("Invalid commit -- wrong set size: %v vs %v", e.Expected, e.Actual)
+	return fmt.Sprintf("invalid commit -- wrong set size: %d, expected [%v, %d]", e.Actual, e.Expected*2/3, e.Expected)
 }
